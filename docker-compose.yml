@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  csc:
+    container_name: "csc"
+    build:
+      context: "."
+      dockerfile: Dockerfile
+    ports:
+      - "9001:9001"
+    command: lambda_function.lambda_handler

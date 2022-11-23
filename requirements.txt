@@ -1,0 +1,6 @@
+-i https://pypi.python.org/simple
+cffi==1.15.1
+cryptography==3.4.8; python_version >= '3.6'
+ownca==0.3.3
+pycparser==2.21
+voluptuous==0.13.1
