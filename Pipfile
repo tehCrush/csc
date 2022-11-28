@@ -5,6 +5,9 @@ name = "pypi"
 
 [packages]
 OwnCA = "*"
+flask = "*"
+easy-db = "*"
+arrow = "*"
 
 [dev-packages]
 
