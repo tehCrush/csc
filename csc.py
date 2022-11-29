@@ -5,6 +5,8 @@ from ownca import CertificateAuthority
 from flask import Flask
 from flask import request
 from flask import render_template
+import string
+import random
 import uuid
 import sqlite3
 import datetime
@@ -17,18 +19,18 @@ app = Flask(__name__)
 
 basedir ="/tmp/csc"
 
-def store_hostkey(hostkey):
+def store_passkey(passkey):
     timestamp = datetime.datetime.utcnow()
-    db.append("request", {"hostkey": hostkey, "timestamp": timestamp})
+    db.append("request", {"passkey": passkey, "timestamp": timestamp})
 
 @app.route("/register", methods=['POST', 'GET'])
 def csc():
     error = None
     if request.method == "GET":
-        hostkey = str(uuid.uuid1())
-        store_hostkey(hostkey)
+        passkey = get_random_string(20)
+        store_passkey(passkey)
 
-        return render_template('request.html', hostkey=hostkey)
+        return render_template('request.html', passkey=passkey)
     # the code below is executed if the request method
     # was GET or the credentials were invalid
     return render_template('register.html', error=error)
@@ -38,9 +40,9 @@ def cert():
     error = None
     if request.method == 'POST':
         content = request.get_json(silent=True)
-        hostkey = content['hostkey']
+        passkey = content['passkey']
         fqdn = content['fqdn']
-        response = db.pull_where('request', f'hostkey = "{ hostkey }"')
+        response = db.pull_where('request', f'passkey = "{ passkey }"')
         print(response)
         if len(response) == 1:
             timestamp = response[0]['timestamp']
@@ -48,26 +50,33 @@ def cert():
             print(now.shift(minutes=-5))
             print(arrow.get(timestamp))
             if now.shift(minutes=-5) < arrow.get(timestamp):
-                certs = create_cert(fqdn,hostkey) 
+                certs = create_cert(fqdn,passkey) 
                 print(certs)
                 with db as cursor:
-                    sql = 'DELETE FROM REQUEST WHERE HOSTKEY=?'
-                    cursor.execute(sql, (hostkey,))
+                    sql = 'DELETE FROM REQUEST WHERE PASSKEY=?'
+                    cursor.execute(sql, (passkey,))
                 return certs
             else:
-                return {"error": "hostkey expired"}
+                return {"error": "passkey expired"}
         else:
-            return {"error": "hostkey does not exist"}
+            return {"error": "passkey does not exist"}
 
-def create_cert(fqdn,hostkey):
+def create_cert(fqdn,passkey):
     ca = CertificateAuthority(ca_storage='/tmp/CA', common_name='dog CA')
 
     server = ca.issue_certificate(fqdn, dns_names=[fqdn, 'localhost'])
+    hostkey = str(uuid.uuid1())
 
     return {"server_key": server.key_bytes.decode("utf-8"),
             "server_crt": server.cert_bytes.decode("utf-8"), 
-            "ca_crt": ca.cert_bytes.decode("utf-8")}
+            "ca_crt": ca.cert_bytes.decode("utf-8"),
+            "hostkey": hostkey}
 
+def get_random_string(length):
+    # choose from all lowercase letter
+    letters = string.ascii_letters
+    result_str = ''.join(random.choice(letters) for i in range(length))
+    return result_str
 
 def lambda_handler(event, context):
     fqdn = event["fqdn"]
