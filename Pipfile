@@ -5,9 +5,12 @@ name = "pypi"
 
 [packages]
 OwnCA = "*"
-flask = "*"
 easy-db = "*"
 arrow = "*"
+FastAPI = "*"
+uvicorn = "*"
+jinja2 = "*"
+pydantic = "*"
 
 [dev-packages]
 
